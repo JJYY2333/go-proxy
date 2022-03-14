@@ -84,6 +84,11 @@ func Socks5Auth(conn net.Conn) error {
 		return nil
 	}
 
+
+	n, err = conn.Write([]byte{0x05, 0x02})
+	if n != 2 || err != nil {
+		return fmt.Errorf("write error in Socks5Auth: %v", err)
+	}
 	// use auth, parse
 	n, err = io.ReadFull(conn, buf[:2])
 	ver, ulen := buf[0], buf[1]
@@ -97,10 +102,11 @@ func Socks5Auth(conn net.Conn) error {
 	passwd := buf[:plen]
 
 	if string(uname) != "neil" && string(passwd) != "hello" {
+		conn.Write([]byte{0x01, 0x01})
 		return fmt.Errorf("auth failed for user: %v", uname)
 	}
 
-
+	conn.Write([]byte{0x01, 0x00})
 	return nil
 }
 
