@@ -108,13 +108,13 @@ func tcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 func ReadAddr(conn net.Conn) ([]byte, error) {
 	buf := make([]byte, 10)
 	
-	n, err := io.Readfull(conn, buf[:6])
+	n, err := io.Readfull(conn, buf[:7])
 	
-	if n != 6 || err != nil {
+	if n != 7 || err != nil {
 		return nil, fmt.Errorf("read addr error in ReadAddr: %v", err)	
 	}
 	
-	return buf[:6], nil
+	return buf[:7], nil
 }
 
 // relay copies between left and right bidirectionally
