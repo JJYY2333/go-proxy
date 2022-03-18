@@ -29,4 +29,4 @@ How to shadow?
             3. Nonce 
             4. buf []
             
-    所以下一步要做的，就是研究Cipher的实现与使用，并且对Writer和Reader进行封装
+    所以下一步要做的，就是研究Cipher的使用，然后对Writer和Reader进行封装，最后再嵌入到Conn里面
