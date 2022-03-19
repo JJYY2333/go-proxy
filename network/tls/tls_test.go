@@ -23,3 +23,19 @@ func TestConnection(t *testing.T) {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 }
+
+func TestServer(t *testing.T) {
+	go TLSRemote("0.0.0.0:1090")
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+}
+
+func TestLocal(t *testing.T) {
+	go TLSLocal(":1089", ":1090")
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+}
