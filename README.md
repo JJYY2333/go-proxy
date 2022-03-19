@@ -30,3 +30,8 @@ How to shadow?
             4. buf []
             
     所以下一步要做的，就是研究Cipher的使用，然后对Writer和Reader进行封装，最后再嵌入到Conn里面
+
+hkdf: Package hkdf implements the HMAC-based Extract-and-Expand Key Derivation Function (HKDF) as defined in RFC 5869.
+chachapoly1305: Package chacha20poly1305 implements the ChaCha20-Poly1305 AEAD and its extended nonce variant XChaCha20-Poly1305, as specified in RFC 8439 and draft-irtf-cfrg-xchacha-01.
+Cipher的实现
+

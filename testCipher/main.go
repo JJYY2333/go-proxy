@@ -60,6 +60,7 @@ func main() {
 	ciphertext, _ := hex.DecodeString("c3aaa29f002ca75870806e44086700f62ce4d43e902b3888e23ceff797a7a471")
 	nonce, _ := hex.DecodeString("64a9433eae7ccceee2fc0eda")
 
+	fmt.Printf("%x\n", nonce)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err.Error())
@@ -79,4 +80,5 @@ func main() {
 	}
 
 	fmt.Printf("%s\n", plaintext)
+
 }
