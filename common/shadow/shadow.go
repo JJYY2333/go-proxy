@@ -2,21 +2,21 @@ package shadow
 
 import (
 	"net"
-	"errors"
-
-	"crypto"
-	"golang.org/x/crypto/chacha20poly1305"
+	//"errors"
+	//
+	//"crypto"
+	//"golang.org/x/crypto/chacha20poly1305"
 	// "golang.org/x/crypto/hkdf"
 )
 
 // ---------------dummy cipher------------------
-type dummy struct {}
+type dummy struct{}
 
-func (dummy) StreamConn(con net.Conn) net.Conn{
+func (dummy) StreamConn(con net.Conn) net.Conn {
 	return con
 }
 
-func (dummy) PacketConn(con net.Conn) net.Conn{
+func (dummy) PacketConn(con net.Conn) net.Conn {
 	return con
 }
 
@@ -28,8 +28,6 @@ const (
 	aeadAes256Gcm        = "AEAD_AES_256_GCM"
 	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
 )
-
-
 
 type Cipher interface {
 	PacketConnCipher
