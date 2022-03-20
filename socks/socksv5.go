@@ -10,44 +10,112 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"go-proxy/v1/common/auth"
 	"io"
 	"net"
 )
 
+type Socks struct {
+	useAuth bool
+	checker auth.Authenticator
+}
+
+func NewSocks(use bool, checker auth.Authenticator) *Socks{
+	s := &Socks{useAuth: use, checker: checker}
+	return s
+}
+
 // HandShake complete the negotiation and returns the target address.
-func HandShake(conn net.Conn) (string, error) {
+func (s *Socks) HandShake(conn net.Conn) (string, error) {
+	err := s.auth(conn)
+	if err != nil {
+		return "", fmt.Errorf("socks handshake error: %v", err)
+	}
+
+	addr, err := s.connect(conn)
+	if err != nil {
+		return "", fmt.Errorf("socks connect error: %v", err)
+	}
+
+	return addr, nil
+}
+
+func (s *Socks) auth(conn net.Conn) error {
 	buf := make([]byte, 256)
+	// read VER, nMETHODS
 	n, err := io.ReadFull(conn, buf[:2])
 	if n != 2 {
-		return "", fmt.Errorf("reading Header error in Socks5Auth: %v", err)
+		return fmt.Errorf("reading Header error in Socks5Auth: %v", err)
 	}
 
+	//check VERSION
 	ver, nMethods := buf[0], buf[1]
 	if ver != 5 {
-		return "", fmt.Errorf("invalid version: %v", ver)
+		return fmt.Errorf("invalid version: %v", ver)
 	}
 
+	//check METHODS
 	n, err = io.ReadFull(conn, buf[:nMethods])
 	if n != int(nMethods) {
-		return "", fmt.Errorf("reading methods: %v", err)
+		return fmt.Errorf("reading methods: %v", err)
 	}
 
-	n, err = conn.Write([]byte{0x05, 0x00})
+	//reply ok to client
+	//no auth
+	if !s.useAuth {
+		n, err = conn.Write([]byte{0x05, 0x00})
+		if n != 2 || err != nil {
+			return fmt.Errorf("write error in Socks5Auth: %v", err)
+		}
+		return nil
+	}
+
+	// reply: use auth
+	n, err = conn.Write([]byte{0x05, 0x02})
 	if n != 2 || err != nil {
-		return "", fmt.Errorf("write error in Socks5Auth: %v", err)
+		return fmt.Errorf("write error in Socks5Auth: %v", err)
+	}
+	// parse uname and password
+	n, err = io.ReadFull(conn, buf[:2])
+	ver, uLen := buf[0], buf[1]
+
+	n, err = io.ReadFull(conn, buf[:uLen])
+	uname := string(buf[:uLen])
+
+	n, err = io.ReadFull(conn, buf[:1])
+	pLen := buf[0]
+	n, err = io.ReadFull(conn, buf[:pLen])
+	passwd := string(buf[:pLen])
+
+	if err != nil {
+		return fmt.Errorf("read uname and passwd error:%v", err)
 	}
 
-	n, err = io.ReadFull(conn, buf[:4])
+	if s.checker.Check(uname, passwd) {
+		conn.Write([]byte{0x01, 0x00})
+		return nil
+	} else {
+		conn.Write([]byte{0x01, 0x01})
+		return fmt.Errorf("auth failed for user: %v", uname)
+	}
+}
+
+func (s *Socks) connect(conn net.Conn) (string, error) {
+	buf := make([]byte, 256)
+
+	// read connect header
+	n, err := io.ReadFull(conn, buf[:4])
 	if n != 4 {
-		return "", errors.New("read header: " + err.Error())
+		return "", fmt.Errorf("read header error: %v", err)
 	}
 
 	ver, cmd, _, atyp := buf[0], buf[1], buf[2], buf[3]
 	if ver != 5 || cmd != 1 {
-		return "", errors.New("invalid ver/cmd")
+		return "", fmt.Errorf("invalid ver/cmd: %d, %d", ver, cmd)
 	}
 
-	addr := ""
+	// ipv4, ipv6
+	var addr string
 	switch atyp {
 	case 1:
 		n, err = io.ReadFull(conn, buf[:4])
@@ -89,26 +157,4 @@ func HandShake(conn net.Conn) (string, error) {
 		return "", errors.New("write rsp: " + err.Error())
 	}
 	return destAddrPort, nil
-}
-
-func auth(conn net.Conn) error {
-	buf := make([]byte, 256)
-	// read VER, nMETHODS
-	n, err := io.ReadFull(conn, buf[:2])
-	if n != 2 {
-		return fmt.Errorf("reading Header error in Socks5Auth: %v", err)
-	}
-
-	//check VERSION
-	ver, nMethods := buf[0], buf[1]
-	if ver != 5 {
-		return fmt.Errorf("invalid version: %v", ver)
-	}
-
-	//check METHODS
-	n, err = io.ReadFull(conn, buf[:nMethods])
-	if n != int(nMethods) {
-		return fmt.Errorf("reading methods: %v", err)
-	}
-
 }
