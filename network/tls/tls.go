@@ -48,12 +48,14 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 			}
 			certBytes, err := ioutil.ReadFile("certs/client.pem")
 			if err != nil {
-				panic("Unable to read cert.pem")
+				log.Println("Unable to read cert.pem")
+				return
 			}
 			clientCertPool := x509.NewCertPool()
 			ok := clientCertPool.AppendCertsFromPEM(certBytes)
 			if !ok {
-				panic("failed to parse root certificate")
+				log.Println("failed to parse root certificate")
+				return
 			}
 			conf := &tls.Config{
 				RootCAs:            clientCertPool,
@@ -98,12 +100,14 @@ func TLSRemote(addr string) {
 	}
 	certBytes, err := ioutil.ReadFile("certs/client.pem")
 	if err != nil {
-		panic("Unable to read cert.pem")
+		log.Println("Unable to read cert.pem")
+		return
 	}
 	clientCertPool := x509.NewCertPool()
 	ok := clientCertPool.AppendCertsFromPEM(certBytes)
 	if !ok {
-		panic("failed to parse root certificate")
+		log.Println("failed to parse root certificate")
+		return
 	}
 	config := &tls.Config{
 		Certificates: []tls.Certificate{cert},
