@@ -7,4 +7,5 @@
 * [****] tcp 与 tls有太多重复的地方， 需要重构， streamConn, tcp or tls? 
 * socks over udp [**]
 * [***] 可以设置启动配置文件的命令行参数
+* [***] 由于各种Panic导致的异常情况的处理， 例如 check ip address, dial timeout 等等。
 
