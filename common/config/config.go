@@ -11,38 +11,71 @@ import (
 	"log"
 )
 
-var (
-	Cfg *ini.File
-	LocalAddr string
+type Config struct {
+	CfgPath    string
+	LocalAddr  string
 	RemoteAddr string
-	UseAuth bool
-)
-
-func init() {
-	var err error
-	Cfg, err = ini.Load("conf/app.ini")
-	if err != nil {
-		log.Fatalf("Fail to parse 'conf/app.ini : %v", err)
-	}
-	LoadServer()
-	LoadApp()
+	ListenAddr string
+	UseAuth    bool
+	Mode       string
+	Connection string
+	CertsPath string
 }
 
-func LoadServer() {
-	sec, err := Cfg.GetSection("server")
-	if err != nil {
-		log.Fatalf("Fail to get section 'server' : %v", err)
-	}
-
-	LocalAddr = sec.Key("Local_Address").MustString("127.0.0.1:1089")
-	RemoteAddr = sec.Key("Remote_Address").MustString("127.0.0.1:1090")
+func New() *Config {
+	cfg := new(Config)
+	return cfg
 }
 
-func LoadApp() {
-	sec, err := Cfg.GetSection("app")
+func (cfg *Config) LoadConfigFromFile(path string) {
+	cfgFile, err := ini.Load(path)
+	if err != nil {
+		log.Fatalf("fail to parse '%s' : %v", path, err)
+	}
+
+	cfg.CfgPath = path
+
+	cfg.loadNet(cfgFile)
+	cfg.loadApp(cfgFile)
+	cfg.loadLocal(cfgFile)
+	cfg.loadRemote(cfgFile)
+}
+
+func (cfg *Config) loadNet(cfgFile *ini.File) {
+	sec, err := cfgFile.GetSection("net")
+	if err != nil {
+		log.Fatalf("fail to get section 'server' : %v", err)
+	}
+
+	cfg.Connection = sec.Key("Connection").MustString("tcp")
+}
+
+func (cfg *Config) loadApp(cfgFile *ini.File) {
+	sec, err := cfgFile.GetSection("app")
 	if err != nil {
 		log.Fatalf("Fail to get section 'app' : %v", err)
 	}
 
-	UseAuth = sec.Key("Use_Auth").MustBool(false)
+	cfg.UseAuth = sec.Key("Use_Auth").MustBool(false)
+	cfg.Mode = sec.Key("Mode").MustString("test")
+	cfg.CertsPath = sec.Key("TLS_Certs").MustString("")
+}
+
+func (cfg *Config) loadLocal(cfgFile *ini.File) {
+	sec, err := cfgFile.GetSection("local")
+	if err != nil {
+		log.Fatalf("Fail to get section 'app' : %v", err)
+	}
+
+	cfg.LocalAddr = sec.Key("Local_Address").MustString("127.0.0.1:1089")
+	cfg.RemoteAddr = sec.Key("Remote_Address").MustString("127.0.0.1:1090")
+}
+
+func (cfg *Config) loadRemote(cfgFile *ini.File) {
+	sec, err := cfgFile.GetSection("remote")
+	if err != nil {
+		log.Fatalf("Fail to get section 'app' : %v", err)
+	}
+
+	cfg.ListenAddr = sec.Key("Listen_Address").MustString(":1090")
 }

@@ -7,6 +7,8 @@
 package tls
 
 import (
+	"go-proxy/v1/common/auth"
+	"go-proxy/v1/socks"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,7 +17,8 @@ import (
 
 func TestConnection(t *testing.T) {
 
-	go TLSLocal(":1089", ":1090")
+	socks := socks.NewSocks(true, auth.NewDummyAuth())
+	go TLSLocal(":1089", ":1090", socks)
 
 	go TLSRemote(":1090")
 
@@ -34,8 +37,8 @@ func TestServer(t *testing.T) {
 
 func TestLocal(t *testing.T) {
 	//go TLSLocal(":1089", "45.76.195.197:443")
-
-	go TLSLocal(":1089", ":1090")
+	socks := socks.NewSocks(true, auth.NewDummyAuth())
+	go TLSLocal(":1089", ":1090", socks)
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
