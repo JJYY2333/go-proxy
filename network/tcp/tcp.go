@@ -8,21 +8,17 @@ package tcp
 
 import (
 	"encoding/binary"
-	"errors"
-	"fmt"
-	"io"
+	"go-proxy/v1/network"
+	"go-proxy/v1/socks"
 	"log"
 	"net"
-	"os"
 	"strconv"
-	"sync"
-	"time"
 )
 
 // TcpLocal create a socks server listen on localAddr,
 // and this socks server will proxy to remote server.
 // localAddr <---> server
-func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn) {
+func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *socks.Socks) {
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", localAddr, err)
@@ -38,15 +34,16 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn) {
 
 		go func(){
 			defer lConn.Close()
-			tgt, err := socks5GetAddr(lConn)
-			log.Printf("local tgt :%v", tgt)
+			tgt, err := socks.HandShake(lConn)
 			if err != nil {
 				log.Printf("failed to get target address from client: %v", err)
+				return
 			}
 
 			lrConn, err := net.Dial("tcp", server)
 			if err != nil {
 				log.Printf("failed to connect to server %v: %v", server, err)
+				return
 			}
 			defer lrConn.Close()
 
@@ -66,15 +63,16 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn) {
 
 			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt)
 
-			if err = relay(lrConn, lConn); err != nil {
+			if err = network.Relay(lrConn, lConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
 	}
 }
 
-// function this
-// hello
+// TcpRemote create a relay server listen on addr,
+// and this relay server will proxy to target server.
+// server <---> target
 func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -95,10 +93,9 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 		go func(){
 			defer lrConn.Close()
 
-
 			lrConn := shadow(lrConn)
 
-			tgt, err := ReadAddr(lrConn)
+			tgt, err := network.ReadAddr(lrConn)
 			if err != nil {
 				log.Printf("failed to get target address from %v: %v", lrConn.RemoteAddr(), err)
 				return
@@ -116,132 +113,16 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 
 			if err != nil {
 				log.Printf("failed to connect to target: %v", err)
+				return
 			}
 
 			log.Printf("proxy %s <-> %s", lrConn.RemoteAddr(), addr)
 
-			if err = relay(lrConn, rtConn); err != nil {
+			if err = network.Relay(lrConn, rtConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
 	}
 }
 
-func ReadAddr(conn net.Conn) ([]byte, error) {
-	buf := make([]byte, 10)
-	
-	n, err := io.ReadFull(conn, buf[:6])
-	
-	if n != 6 || err != nil {
-		return nil, fmt.Errorf("read addr error in ReadAddr: %v", err)	
-	}
-	
-	return buf[:6], nil
-}
 
-// relay copies between left and right bidirectionally
-func relay(left, right net.Conn) error {
-	var err, err1 error
-	var wg sync.WaitGroup
-	var wait = 5 * time.Second
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var n int64
-		n, err1 = io.Copy(right, left)
-		log.Printf("%v bytes from %v -> %v", n, left.LocalAddr(), right.LocalAddr())
-		right.SetReadDeadline(time.Now().Add(wait)) // unblock read on right
-	}()
-
-	var n int64
-	n, err = io.Copy(left, right)
-	log.Printf("%v bytes from %v -> %v", n, right.LocalAddr(), left.LocalAddr())
-	left.SetReadDeadline(time.Now().Add(wait)) // unblock read on left
-	wg.Wait()
-	if err1 != nil && !errors.Is(err1, os.ErrDeadlineExceeded) { // requires Go 1.15+
-		return err1
-	}
-	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
-		return err
-	}
-	return nil
-}
-
-
-//整个协商， 子协商， 请求阶段， 已拿到target address为结束
-func socks5GetAddr(conn net.Conn) (string, error){
-	buf := make([]byte, 256)
-	n, err := io.ReadFull(conn, buf[:2])
-	if n != 2 {
-		return "", fmt.Errorf("reading Header error in Socks5Auth: %v", err)
-	}
-
-	ver, nMethods := buf[0], buf[1]
-	if ver != 5 {
-		return "", fmt.Errorf("invalid version: %v", ver)
-	}
-
-	n, err = io.ReadFull(conn, buf[:nMethods])
-	if n != int(nMethods) {
-		return "", fmt.Errorf("reading methods: %v", err)
-	}
-
-	n, err = conn.Write([]byte{0x05, 0x00})
-	if n != 2 || err != nil {
-		return "", fmt.Errorf("write error in Socks5Auth: %v", err)
-	}
-
-
-	n, err = io.ReadFull(conn, buf[:4])
-	if n != 4 {
-		return "", errors.New("read header: " + err.Error())
-	}
-
-	ver, cmd, _, atyp := buf[0], buf[1], buf[2], buf[3]
-	if ver != 5 || cmd != 1 {
-		return "", errors.New("invalid ver/cmd")
-	}
-
-	addr := ""
-	switch atyp {
-	case 1:
-		n, err = io.ReadFull(conn, buf[:4])
-		if n != 4 {
-			return "", errors.New("invalid IPv4: " + err.Error())
-		}
-		addr = fmt.Sprintf("%d.%d.%d.%d", buf[0], buf[1], buf[2], buf[3])
-
-	case 3:
-		n, err = io.ReadFull(conn, buf[:1])
-		if n != 1 {
-			return "", errors.New("invalid hostname: " + err.Error())
-		}
-		addrLen := int(buf[0])
-
-		n, err = io.ReadFull(conn, buf[:addrLen])
-		if n != addrLen {
-			return "", errors.New("invalid hostname: " + err.Error())
-		}
-		addr = string(buf[:addrLen])
-
-	case 4:
-		return "", errors.New("IPv6: no supported yet")
-
-	default:
-		return "", errors.New("invalid atyp")
-	}
-
-	n, err = io.ReadFull(conn, buf[:2])
-	if n != 2 {
-		return "", errors.New("read port: " + err.Error())
-	}
-	port := binary.BigEndian.Uint16(buf[:2])
-
-	destAddrPort := fmt.Sprintf("%s:%d", addr, port)
-
-	n, err = conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
-	if err != nil {
-		return "", errors.New("write rsp: " + err.Error())
-	}
-	return destAddrPort, nil
-}
