@@ -20,12 +20,6 @@ type StreamConnCipher interface {
 	StreamConn(net.Conn) net.Conn
 }
 
-// ---------------dummy cipher------------------
-type dummy struct{}
-
-func (dummy) StreamConn(c net.Conn) net.Conn             { return c }
-func (dummy) PacketConn(c net.PacketConn) net.PacketConn { return c }
-
 //-------------key
 func GetKeyByDecode(stringKey string) []byte{
 	key, _:= hex.DecodeString(stringKey)
@@ -93,6 +87,13 @@ func PickConnCipher(name string) (ConnCipher, error) {
 	return nil, ErrCipherNotSupported
 }
 
+// ---------------dummy cipher------------------
+type dummy struct{}
+
+func (dummy) StreamConn(c net.Conn) net.Conn             { return c }
+func (dummy) PacketConn(c net.PacketConn) net.PacketConn { return c }
+
+// ------
 type aeadCipher struct{ Cipher }
 
 /*

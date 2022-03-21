@@ -103,16 +103,26 @@ func (a *metaCipher) SaltSize() int {
 	}
 	return 16
 }
-func (a *metaCipher) Encrypter(key []byte) (cipher.AEAD, error) {
+func (a *metaCipher) Encrypter(salt []byte) (cipher.AEAD, error) {
 	//salt=key, 下面的操作都是根据salt和subkey对key进行二次hash，生成新的key
 	//subkey := make([]byte, a.KeySize())
 	//hkdfSHA1(a.psk, salt, []byte("ss-subkey"), subkey)
-	return a.makeAEAD(key)
+	//
+	finalKey := processKey(salt, a.psk)
+	return a.makeAEAD(finalKey)
 }
-func (a *metaCipher) Decrypter(key []byte) (cipher.AEAD, error) {
+func (a *metaCipher) Decrypter(salt []byte) (cipher.AEAD, error) {
 	//subkey := make([]byte, a.KeySize())
 	//hkdfSHA1(a.psk, salt, []byte("ss-subkey"), subkey)
-	return a.makeAEAD(key)
+	finalKey := processKey(salt, a.psk)
+	return a.makeAEAD(finalKey)
+}
+
+// 扩展接口，用salk对key进行加工
+func processKey(salt, key []byte) []byte{
+	// 目前不对key做二次加工，salt只是用来摆设
+	salt[0]++
+	return key
 }
 
 // AESGCM creates a new Cipher with a pre-shared key. len(psk) must be
