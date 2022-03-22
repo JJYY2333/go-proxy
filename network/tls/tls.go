@@ -8,14 +8,10 @@ package tls
 
 import (
 	"crypto/tls"
-	"crypto/x509"
-	"encoding/binary"
 	"go-proxy/v1/network"
 	"go-proxy/v1/socks"
-	"io/ioutil"
 	"log"
 	"net"
-	"strconv"
 )
 
 func TLSLocal(localAddr, server string, socks *socks.Socks) {
@@ -41,26 +37,9 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 			}
 
 			// set tls config
-			cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
+			conf, err := GetClientConfig()
 			if err != nil {
-				log.Println(err)
-				return
-			}
-			certBytes, err := ioutil.ReadFile("certs/client.pem")
-			if err != nil {
-				log.Println("Unable to read cert.pem")
-				return
-			}
-			clientCertPool := x509.NewCertPool()
-			ok := clientCertPool.AppendCertsFromPEM(certBytes)
-			if !ok {
-				log.Println("failed to parse root certificate")
-				return
-			}
-			conf := &tls.Config{
-				RootCAs:            clientCertPool,
-				Certificates:       []tls.Certificate{cert},
-				InsecureSkipVerify: true,
+				log.Fatalf("get client tls config error: %v", err)
 			}
 
 			// dial tls
@@ -71,14 +50,8 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 			}
 			defer lrConn.Close()
 
-			ip, port, err := net.SplitHostPort(tgt)
-			ip_byte := []byte(net.ParseIP(ip).To4())
-			p, err := strconv.Atoi(port)
-			p_byte := make([]byte, 2)
-			binary.BigEndian.PutUint16(p_byte, uint16(p))
-			addr_byte := append(ip_byte, p_byte...)
-
-			if _, err = lrConn.Write(addr_byte); err != nil {
+			addrByte := network.AddrStrToBytes(tgt)
+			if _, err = lrConn.Write(addrByte); err != nil {
 				log.Printf("failed to send target address: %v", err)
 				return
 			}
@@ -93,28 +66,13 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 }
 
 func TLSRemote(addr string) {
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+	conf, err := GetServerConfig()
 	if err != nil {
-		log.Println(err)
+		log.Printf("get server tls config error: %v", err)
 		return
 	}
-	certBytes, err := ioutil.ReadFile("certs/client.pem")
-	if err != nil {
-		log.Println("Unable to read cert.pem")
-		return
-	}
-	clientCertPool := x509.NewCertPool()
-	ok := clientCertPool.AppendCertsFromPEM(certBytes)
-	if !ok {
-		log.Println("failed to parse root certificate")
-		return
-	}
-	config := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		ClientCAs:    clientCertPool,
-	}
-	listener, err := tls.Listen("tcp", addr, config)
+
+	listener, err := tls.Listen("tcp", addr, conf)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", addr, err)
 		return
@@ -139,23 +97,66 @@ func TLSRemote(addr string) {
 				return
 			}
 
-			ipByte := tgt[:4]
-			portByte := tgt[4:]
-
-			port := strconv.Itoa(int(binary.BigEndian.Uint16(portByte)))
-			ip := net.IP(ipByte).String()
-			addr := net.JoinHostPort(ip, port)
-			log.Printf("remote tgt is: %v, length is :%v, string is :%v", addr, len(addr), string(addr))
+			addr := network.AddrBytesToStr(tgt)
+			//log.Printf("remote tgt is: %v, length is :%v, string is :%v", addr, len(addr), string(addr))
 
 			rtConn, err := net.Dial("tcp", addr)
 
 			if err != nil {
-				log.Printf("failed to connect to target: %v", err)
+				log.Printf("failed to connect to target %s: %v", addr, err)
+				return
 			}
 
 			log.Printf("proxy %s <-> %s", lrConn.RemoteAddr(), addr)
 
 			if err = network.Relay(lrConn, rtConn); err != nil {
+				log.Printf("relay error: %v", err)
+			}
+		}()
+	}
+}
+
+func TLSSolo(addr string, socks *socks.Socks) {
+	conf, err := GetServerConfig()
+	if err != nil {
+		log.Printf("get server tls config error: %v", err)
+		return
+	}
+
+	listener, err := tls.Listen("tcp", addr, conf)
+	if err != nil {
+		log.Printf("failed to listen on %s: %v", addr, err)
+		return
+	}
+
+	log.Printf("listening TCP on %s", addr)
+
+	for {
+		cConn, err := listener.Accept()
+		if err != nil {
+			log.Printf("failed to accept: %v\n", err)
+			continue
+		}
+
+		go func() {
+			defer cConn.Close()
+
+			tgt, err := socks.HandShake(cConn)
+			if err != nil {
+				log.Printf("failed to get target address from client: %v", err)
+				return
+			}
+
+			tConn, err := net.Dial("tcp", tgt)
+
+			if err != nil {
+				log.Printf("failed to connect to target %s: %v", addr, err)
+				return
+			}
+
+			log.Printf("proxy %s <-> %s", tConn.RemoteAddr(), addr)
+
+			if err = network.Relay(cConn, tConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
