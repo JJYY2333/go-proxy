@@ -38,9 +38,9 @@ func main() {
 	if cfg.Connection == "tcp" {
 		if cfg.Mode == "local" {
 			go tcp.TcpLocal(cfg.LocalAddr, cfg.RemoteAddr, dummy, socks)
-		}else if cfg.Mode == "remote" {
+		} else if cfg.Mode == "remote" {
 			go tcp.TcpRemote(cfg.ListenAddr, dummy)
-		}else if cfg.Mode == "test" {
+		} else if cfg.Mode == "test" {
 			go tcp.TcpLocal(cfg.LocalAddr, cfg.RemoteAddr, dummy, socks)
 			go tcp.TcpRemote(cfg.ListenAddr, dummy)
 		} else {
@@ -49,11 +49,13 @@ func main() {
 	} else if cfg.Connection == "tls" {
 		if cfg.Mode == "local" {
 			go tls.TLSLocal(cfg.LocalAddr, cfg.RemoteAddr, socks)
-		}else if cfg.Mode == "remote" {
+		} else if cfg.Mode == "remote" {
 			go tls.TLSRemote(cfg.ListenAddr)
-		}else if cfg.Mode == "test" {
+		} else if cfg.Mode == "test" {
 			go tls.TLSLocal(cfg.LocalAddr, cfg.RemoteAddr, socks)
 			go tls.TLSRemote(cfg.ListenAddr)
+		} else if cfg.Mode == "solo" {
+			go tls.TLSSolo(cfg.ListenAddr, socks)
 		} else {
 			log.Fatalf("invalid mode in config: %v", cfg.Mode)
 		}
