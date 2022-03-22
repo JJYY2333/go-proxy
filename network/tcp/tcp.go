@@ -7,12 +7,10 @@
 package tcp
 
 import (
-	"encoding/binary"
 	"go-proxy/v1/network"
 	"go-proxy/v1/socks"
 	"log"
 	"net"
-	"strconv"
 )
 
 // TcpLocal create a socks server listen on localAddr,
@@ -32,7 +30,7 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *s
 			continue
 		}
 
-		go func(){
+		go func() {
 			defer lConn.Close()
 			tgt, err := socks.HandShake(lConn)
 			if err != nil {
@@ -49,14 +47,9 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *s
 
 			lrConn = shadow(lrConn)
 
-			ip, port, err := net.SplitHostPort(tgt)
-			ip_byte := []byte(net.ParseIP(ip).To4())
-			p, err := strconv.Atoi(port)
-			p_byte := make([]byte, 2)
-			binary.BigEndian.PutUint16(p_byte, uint16(p))
-			addr_byte := append(ip_byte, p_byte...)
+			addrByte := network.AddrStrToBytes(tgt)
 
-			if _, err = lrConn.Write(addr_byte); err != nil {
+			if _, err = lrConn.Write(addrByte); err != nil {
 				log.Printf("failed to send target address: %v", err)
 				return
 			}
@@ -90,7 +83,7 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 		}
 
 		//不用担心lrConn全部使用的是一个， 这里用到了闭包
-		go func(){
+		go func() {
 			defer lrConn.Close()
 
 			lrConn := shadow(lrConn)
@@ -101,14 +94,7 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 				return
 			}
 
-			ipByte := tgt[:4]
-			portByte := tgt[4:]
-
-			port := strconv.Itoa(int(binary.BigEndian.Uint16(portByte)))
-			ip := net.IP(ipByte).String()
-			addr := net.JoinHostPort(ip, port)
-			log.Printf("remote tgt is: %v, length is :%v, string is :%v", addr, len(addr), string(addr))
-
+			addr := network.AddrBytesToStr(tgt)
 			rtConn, err := net.Dial("tcp", addr)
 
 			if err != nil {

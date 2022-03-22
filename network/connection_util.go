@@ -7,12 +7,14 @@
 package network
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -21,7 +23,6 @@ func ReadAddr(conn net.Conn) ([]byte, error) {
 	buf := make([]byte, 10)
 
 	n, err := io.ReadFull(conn, buf[:6])
-
 	if n != 6 || err != nil {
 		return nil, fmt.Errorf("read addr error in ReadAddr: %v", err)
 	}
@@ -29,7 +30,7 @@ func ReadAddr(conn net.Conn) ([]byte, error) {
 	return buf[:6], nil
 }
 
-// relay copies between left and right bidirectionally
+// Relay copies between left and right bidirectionally
 func Relay(left, right net.Conn) error {
 	var err, err1 error
 	var wg sync.WaitGroup
@@ -55,4 +56,23 @@ func Relay(left, right net.Conn) error {
 		return err
 	}
 	return nil
+}
+
+func AddrBytesToStr(b []byte) string {
+	ipByte := b[:4]
+	portByte := b[4:]
+	port := strconv.Itoa(int(binary.BigEndian.Uint16(portByte)))
+	ip := net.IP(ipByte).String()
+	addr := net.JoinHostPort(ip, port)
+	return addr
+}
+
+func AddrStrToBytes(s string) []byte {
+	ip, port, _ := net.SplitHostPort(s)
+	ipByte := []byte(net.ParseIP(ip).To4())
+	p, _ := strconv.Atoi(port)
+	pByte := make([]byte, 2)
+	binary.BigEndian.PutUint16(pByte, uint16(p))
+	addrByte := append(ipByte, pByte...)
+	return addrByte
 }
