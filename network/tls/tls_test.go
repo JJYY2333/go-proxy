@@ -43,3 +43,11 @@ func TestLocal(t *testing.T) {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 }
+
+func TestTLSSolo(t *testing.T) {
+	socks := socks.NewSocks(true, auth.NewDummyAuth())
+	go TLSSolo(":1090", socks)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+}

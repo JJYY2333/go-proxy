@@ -116,6 +116,7 @@ func TLSRemote(addr string) {
 	}
 }
 
+// TLSSolo combine some feature from Local and Remote, so there will be only one proxy server
 func TLSSolo(addr string, socks *socks.Socks) {
 	conf, err := GetServerConfig()
 	if err != nil {
