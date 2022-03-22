@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"net"
-	"encoding/hex"
+	//"net"
+
 	//"errors"
 	"strconv"
 	//"crypto"
@@ -20,17 +20,6 @@ import (
 */
 
 
-// ---------------dummy cipher------------------
-type dummy struct{}
-
-func (dummy) StreamConn(con net.Conn) net.Conn {
-	return con
-}
-
-func (dummy) PacketConn(con net.Conn) net.Conn {
-	return con
-}
-
 
 // 生成密钥
 func KEYGen(keySize int) ([]byte, string) {
@@ -40,32 +29,16 @@ func KEYGen(keySize int) ([]byte, string) {
 	// 返回生成的key数组和字符串key
 	return randKey, key
 }
-const(
-	StringKeyOf16 = "6368616e676520746869732070617373"
-	StringKeyOf32 = "6368616e676520746869732070617373776f726420746f206120736563726574"
 
-	// AEAD cipher, 可选加密算法
-	aeadAes128Gcm        = "AEAD_AES_128_GCM"
-	aeadAes256Gcm        = "AEAD_AES_256_GCM"
-	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
-)
-
-func GetKeyByDecode(stringKey string) []byte{
-	key, _:= hex.DecodeString(stringKey)
-	return key
-}
-
-// hardcode的key
-var Key = map[int]struct{
-	keySize int
-	keyString string
-	getKey func(string) []byte
-}{
-	16: {16, StringKeyOf16, GetKeyByDecode},
-	32: {32, StringKeyOf32, GetKeyByDecode},
-}
-
-// 用的时候，a.getKey(a.keyString)
+//const(
+//	StringKeyOf16 = "6368616e676520746869732070617373"
+//	StringKeyOf32 = "6368616e676520746869732070617373776f726420746f206120736563726574"
+//
+//	// AEAD cipher, 可选加密算法
+//	aeadAes128Gcm        = "AEAD_AES_128_GCM"
+//	aeadAes256Gcm        = "AEAD_AES_256_GCM"
+//	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
+//)
 
 
 // -------------AEAD cipher-----------------
@@ -130,16 +103,26 @@ func (a *metaCipher) SaltSize() int {
 	}
 	return 16
 }
-func (a *metaCipher) Encrypter(key []byte) (cipher.AEAD, error) {
+func (a *metaCipher) Encrypter(salt []byte) (cipher.AEAD, error) {
 	//salt=key, 下面的操作都是根据salt和subkey对key进行二次hash，生成新的key
 	//subkey := make([]byte, a.KeySize())
 	//hkdfSHA1(a.psk, salt, []byte("ss-subkey"), subkey)
-	return a.makeAEAD(key)
+	//
+	finalKey := processKey(salt, a.psk)
+	return a.makeAEAD(finalKey)
 }
-func (a *metaCipher) Decrypter(key []byte) (cipher.AEAD, error) {
+func (a *metaCipher) Decrypter(salt []byte) (cipher.AEAD, error) {
 	//subkey := make([]byte, a.KeySize())
 	//hkdfSHA1(a.psk, salt, []byte("ss-subkey"), subkey)
-	return a.makeAEAD(key)
+	finalKey := processKey(salt, a.psk)
+	return a.makeAEAD(finalKey)
+}
+
+// 扩展接口，用salk对key进行加工
+func processKey(salt, key []byte) []byte{
+	// 目前不对key做二次加工，salt只是用来摆设
+	salt[0]++
+	return key
 }
 
 // AESGCM creates a new Cipher with a pre-shared key. len(psk) must be
@@ -171,18 +154,4 @@ func Chacha20Poly1305(psk []byte) (Cipher, error) {
 }
 
 
-
-/*
-type Cipher interface {
-	PacketConnCipher
-	StreamConnCipher
-}
-
-type PacketConnCipher interface {
-	PacketConn(net.PacketConn) net.PacketConn
-}
-
-type StreamConnCipher interface {
-	StreamConn(net.Conn) net.Conn
-}
-*/
+/
