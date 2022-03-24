@@ -8,13 +8,13 @@ package tls
 
 import (
 	"crypto/tls"
-	"go-proxy/v1/network"
+	"go-proxy/v1/network/util"
 	"go-proxy/v1/socks"
 	"log"
 	"net"
 )
 
-func TLSLocal(localAddr, server string, socks *socks.Socks) {
+func TLSLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", localAddr, err)
@@ -37,7 +37,7 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 			}
 
 			// set tls config
-			conf, err := GetClientConfig()
+			conf, err := GetClientConfig(pair)
 			if err != nil {
 				log.Fatalf("get client tls config error: %v", err)
 			}
@@ -50,7 +50,7 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 			}
 			defer lrConn.Close()
 
-			addrByte := network.AddrStrToBytes(tgt)
+			addrByte := util.AddrStrToBytes(tgt)
 			if _, err = lrConn.Write(addrByte); err != nil {
 				log.Printf("failed to send target address: %v", err)
 				return
@@ -58,15 +58,15 @@ func TLSLocal(localAddr, server string, socks *socks.Socks) {
 
 			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt)
 
-			if err = network.Relay(lrConn, lConn); err != nil {
+			if err = util.Relay(lrConn, lConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
 	}
 }
 
-func TLSRemote(addr string) {
-	conf, err := GetServerConfig()
+func TLSRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
+	conf, err := GetServerConfig(clientKeyPair, serverKeyPair)
 	if err != nil {
 		log.Printf("get server tls config error: %v", err)
 		return
@@ -91,13 +91,13 @@ func TLSRemote(addr string) {
 		go func() {
 			defer lrConn.Close()
 
-			tgt, err := network.ReadAddr(lrConn)
+			tgt, err := util.ReadAddr(lrConn)
 			if err != nil {
 				log.Printf("failed to get target address from %v: %v", lrConn.RemoteAddr(), err)
 				return
 			}
 
-			addr := network.AddrBytesToStr(tgt)
+			addr := util.AddrBytesToStr(tgt)
 			//log.Printf("remote tgt is: %v, length is :%v, string is :%v", addr, len(addr), string(addr))
 
 			rtConn, err := net.Dial("tcp", addr)
@@ -109,7 +109,7 @@ func TLSRemote(addr string) {
 
 			log.Printf("proxy %s <-> %s", lrConn.RemoteAddr(), addr)
 
-			if err = network.Relay(lrConn, rtConn); err != nil {
+			if err = util.Relay(lrConn, rtConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
@@ -117,8 +117,8 @@ func TLSRemote(addr string) {
 }
 
 // TLSSolo combine some feature from Local and Remote, so there will be only one proxy server
-func TLSSolo(addr string, socks *socks.Socks) {
-	conf, err := GetServerConfig()
+func TLSSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
+	conf, err := GetServerConfig(clientKeyPair, serverKeyPair)
 	if err != nil {
 		log.Printf("get server tls config error: %v", err)
 		return
@@ -157,7 +157,7 @@ func TLSSolo(addr string, socks *socks.Socks) {
 
 			log.Printf("proxy %s <-> %s", tConn.RemoteAddr(), addr)
 
-			if err = network.Relay(cConn, tConn); err != nil {
+			if err = util.Relay(cConn, tConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()

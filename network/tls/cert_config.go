@@ -9,18 +9,25 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"log"
 )
 
-func GetClientConfig() (*tls.Config, error) {
+type KeyPair struct {
+	pem string
+	key string
+}
+
+func GetClientConfig(pair *KeyPair) (*tls.Config, error) {
 	// set tls config
-	cert, err := tls.LoadX509KeyPair("certs/client.pem", "certs/client.key")
+	fmt.Println(pair.pem, pair.key)
+	cert, err := tls.LoadX509KeyPair(pair.pem, pair.key)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	certBytes, err := ioutil.ReadFile("certs/client.pem")
+	certBytes, err := ioutil.ReadFile(pair.pem)
 	if err != nil {
 		log.Println("Unable to read cert.pem")
 		return nil, err
@@ -40,13 +47,13 @@ func GetClientConfig() (*tls.Config, error) {
 	return conf, nil
 }
 
-func GetServerConfig() (*tls.Config, error) {
-	cert, err := tls.LoadX509KeyPair("certs/server.pem", "certs/server.key")
+func GetServerConfig(clientKeyPair *KeyPair, serverKeyPair *KeyPair) (*tls.Config, error) {
+	cert, err := tls.LoadX509KeyPair(serverKeyPair.pem, serverKeyPair.key)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	certBytes, err := ioutil.ReadFile("certs/client.pem")
+	certBytes, err := ioutil.ReadFile(clientKeyPair.pem)
 	if err != nil {
 		log.Println("Unable to read cert.pem")
 		return nil, err
