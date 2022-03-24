@@ -7,7 +7,7 @@
 package tcp
 
 import (
-	"go-proxy/v1/network"
+	"go-proxy/v1/network/util"
 	"go-proxy/v1/socks"
 	"log"
 	"net"
@@ -47,7 +47,7 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *s
 
 			lrConn = shadow(lrConn)
 
-			addrByte := network.AddrStrToBytes(tgt)
+			addrByte := util.AddrStrToBytes(tgt)
 
 			if _, err = lrConn.Write(addrByte); err != nil {
 				log.Printf("failed to send target address: %v", err)
@@ -56,7 +56,7 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *s
 
 			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt)
 
-			if err = network.Relay(lrConn, lConn); err != nil {
+			if err = util.Relay(lrConn, lConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
@@ -88,13 +88,13 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 
 			lrConn := shadow(lrConn)
 
-			tgt, err := network.ReadAddr(lrConn)
+			tgt, err := util.ReadAddr(lrConn)
 			if err != nil {
 				log.Printf("failed to get target address from %v: %v", lrConn.RemoteAddr(), err)
 				return
 			}
 
-			addr := network.AddrBytesToStr(tgt)
+			addr := util.AddrBytesToStr(tgt)
 			rtConn, err := net.Dial("tcp", addr)
 
 			if err != nil {
@@ -104,11 +104,9 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 
 			log.Printf("proxy %s <-> %s", lrConn.RemoteAddr(), addr)
 
-			if err = network.Relay(lrConn, rtConn); err != nil {
+			if err = util.Relay(lrConn, rtConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
 	}
 }
-
-
