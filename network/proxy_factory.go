@@ -9,15 +9,12 @@ package network
 import (
 	"fmt"
 	"go-proxy/v1/common/config"
+	"go-proxy/v1/network/proxy"
 	"go-proxy/v1/network/tls"
 	"go-proxy/v1/socks"
 )
 
-type Proxy interface {
-	Start()
-}
-
-func MakeProxy(cfg *config.Config, socks *socks.Socks) (Proxy, error) {
+func MakeProxy(cfg *config.Config, socks *socks.Socks) (proxy.Proxy, error) {
 	switch cfg.Connection {
 	case "tcp":
 		return nil, fmt.Errorf("currently unsupported")

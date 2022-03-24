@@ -10,8 +10,8 @@ import (
 	"flag"
 	"go-proxy/v1/common/auth"
 	"go-proxy/v1/common/config"
+	"go-proxy/v1/network"
 	"go-proxy/v1/network/tcp"
-	"go-proxy/v1/network/tls"
 	"go-proxy/v1/socks"
 	"log"
 	"net"
@@ -47,18 +47,11 @@ func main() {
 			log.Fatalf("invalid mode in config: %v", cfg.Mode)
 		}
 	} else if cfg.Connection == "tls" {
-		if cfg.Mode == "local" {
-			go tls.TLSLocal(cfg.LocalAddr, cfg.RemoteAddr, socks)
-		} else if cfg.Mode == "remote" {
-			go tls.TLSRemote(cfg.ListenAddr)
-		} else if cfg.Mode == "test" {
-			go tls.TLSLocal(cfg.LocalAddr, cfg.RemoteAddr, socks)
-			go tls.TLSRemote(cfg.ListenAddr)
-		} else if cfg.Mode == "solo" {
-			go tls.TLSSolo(cfg.ListenAddr, socks)
-		} else {
-			log.Fatalf("invalid mode in config: %v", cfg.Mode)
+		proxy, err := network.MakeProxy(cfg, socks)
+		if err != nil {
+			log.Fatalf("make proxy error: %v", err)
 		}
+		proxy.Start()
 	}
 
 	sigCh := make(chan os.Signal, 1)

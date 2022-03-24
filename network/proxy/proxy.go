@@ -5,3 +5,7 @@
 */
 
 package proxy
+
+type Proxy interface {
+	Start()
+}

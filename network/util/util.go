@@ -4,7 +4,7 @@
 @File    : connection_util
 */
 
-package network
+package util
 
 import (
 	"encoding/binary"
