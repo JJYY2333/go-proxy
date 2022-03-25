@@ -11,10 +11,8 @@ import (
 	"go-proxy/v1/common/auth"
 	"go-proxy/v1/common/config"
 	"go-proxy/v1/network"
-	"go-proxy/v1/network/tcp"
 	"go-proxy/v1/socks"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -26,33 +24,15 @@ func main() {
 
 	flag.Parse()
 
-	dummy := func(conn net.Conn) net.Conn {
-		return conn
-	}
-
 	cfg := config.New()
 	cfg.LoadConfigFromFile(*path)
 
 	socks := socks.NewSocks(cfg.UseAuth, auth.NewDummyAuth())
-
-	if cfg.Connection == "tcp" {
-		if cfg.Mode == "local" {
-			go tcp.TcpLocal(cfg.LocalAddr, cfg.RemoteAddr, dummy, socks)
-		} else if cfg.Mode == "remote" {
-			go tcp.TcpRemote(cfg.ListenAddr, dummy)
-		} else if cfg.Mode == "test" {
-			go tcp.TcpLocal(cfg.LocalAddr, cfg.RemoteAddr, dummy, socks)
-			go tcp.TcpRemote(cfg.ListenAddr, dummy)
-		} else {
-			log.Fatalf("invalid mode in config: %v", cfg.Mode)
-		}
-	} else if cfg.Connection == "tls" {
-		proxy, err := network.MakeProxy(cfg, socks)
-		if err != nil {
-			log.Fatalf("make proxy error: %v", err)
-		}
-		proxy.Start()
+	proxy, err := network.MakeProxy(cfg, socks)
+	if err != nil {
+		log.Fatalf("make proxy error: %v", err)
 	}
+	proxy.Start()
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
