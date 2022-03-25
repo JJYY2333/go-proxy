@@ -10,21 +10,27 @@ import (
 	"fmt"
 	"go-proxy/v1/common/config"
 	"go-proxy/v1/network/proxy"
+	"go-proxy/v1/network/tcp"
 	"go-proxy/v1/network/tls"
 	"go-proxy/v1/socks"
 )
 
 func MakeProxy(cfg *config.Config, socks *socks.Socks) (proxy.Proxy, error) {
+	var p proxy.Proxy
+	var err error
+
 	switch cfg.Connection {
 	case "tcp":
-		return nil, fmt.Errorf("currently unsupported")
+		p, err = tcp.NewProxy(cfg, socks)
 	case "tls":
-		p, err := tls.NewProxy(cfg, socks)
-		if err != nil {
-			return nil, err
-		}
-		return p, nil
+		p, err = tls.NewProxy(cfg, socks)
 	default:
-		return nil, fmt.Errorf("make proxy error for wrong connection type: %v", cfg.Connection)
+		err = fmt.Errorf("make proxy error for wrong connection type: %v", cfg.Connection)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }

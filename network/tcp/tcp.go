@@ -110,3 +110,44 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 		}()
 	}
 }
+
+func TcpSolo(addr string, shadow func(net.Conn) net.Conn, socks *socks.Socks) {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Printf("failed to listen on %s: %v", addr, err)
+		return
+	}
+
+	log.Printf("listening TCP on %s", addr)
+
+	for {
+		cConn, err := listener.Accept()
+		if err != nil {
+			log.Printf("failed to accept: %v\n", err)
+			continue
+		}
+
+		go func() {
+			defer cConn.Close()
+
+			tgt, err := socks.HandShake(cConn)
+			if err != nil {
+				log.Printf("failed to get target address from client: %v", err)
+				return
+			}
+
+			tConn, err := net.Dial("tcp", tgt)
+
+			if err != nil {
+				log.Printf("failed to connect to target %s: %v", addr, err)
+				return
+			}
+
+			log.Printf("proxy %s <-> %s", tConn.RemoteAddr(), addr)
+
+			if err = util.Relay(cConn, tConn); err != nil {
+				log.Printf("relay error: %v", err)
+			}
+		}()
+	}
+}
