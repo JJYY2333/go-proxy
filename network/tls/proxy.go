@@ -13,7 +13,7 @@ import (
 	"path"
 )
 
-type TLSProxy struct {
+type TlsProxy struct {
 	clientKeyPair *KeyPair
 	serverKeyPair *KeyPair
 
@@ -31,11 +31,12 @@ type TLSProxy struct {
 	mode string
 }
 
-func NewProxy(cfg *config.Config, socks *socks.Socks) (*TLSProxy, error) {
-	p := new(TLSProxy)
+func NewProxy(cfg *config.Config, socks *socks.Socks) (*TlsProxy, error) {
+	p := new(TlsProxy)
 	p.clientKeyPair = &KeyPair{key: path.Join(cfg.CertsPath, "client.key"), pem: path.Join(cfg.CertsPath, "client.pem")}
 	p.serverKeyPair = &KeyPair{key: path.Join(cfg.CertsPath, "server.key"), pem: path.Join(cfg.CertsPath, "server.pem")}
 	p.socks = socks
+
 	p.mode = cfg.Mode
 
 	switch p.mode {
@@ -52,14 +53,14 @@ func NewProxy(cfg *config.Config, socks *socks.Socks) (*TLSProxy, error) {
 	case "solo":
 		p.listenAddr = cfg.ListenAddr
 	default:
-		return nil, fmt.Errorf("config Mode error, no mode in tls proxy: %v", p.mode)
+		return nil, fmt.Errorf("build proxy error for there is no mode in tls proxy: %v", p.mode)
 	}
 
 	return p, nil
 }
 
 // Start build different mode of this proxy
-func (p *TLSProxy) Start() {
+func (p *TlsProxy) Start() {
 	switch p.mode {
 	case "local":
 		p.startLocal()
@@ -75,19 +76,19 @@ func (p *TLSProxy) Start() {
 	}
 }
 
-func (p *TLSProxy) startLocal() {
-	go TLSLocal(p.laddr, p.raddr, p.socks, p.clientKeyPair)
+func (p *TlsProxy) startLocal() {
+	go TlsLocal(p.laddr, p.raddr, p.socks, p.clientKeyPair)
 }
 
-func (p *TLSProxy) startRemote() {
-	go TLSRemote(p.listenAddr, p.clientKeyPair, p.serverKeyPair)
+func (p *TlsProxy) startRemote() {
+	go TlsRemote(p.listenAddr, p.clientKeyPair, p.serverKeyPair)
 }
 
-func (p *TLSProxy) startSolo() {
-	go TLSSolo(p.listenAddr, p.socks, p.clientKeyPair, p.serverKeyPair)
+func (p *TlsProxy) startSolo() {
+	go TlsSolo(p.listenAddr, p.socks, p.clientKeyPair, p.serverKeyPair)
 }
 
-func (p *TLSProxy) startTest() {
+func (p *TlsProxy) startTest() {
 	p.startLocal()
 	p.startRemote()
 }

@@ -7,14 +7,14 @@
 package tls
 
 import (
-	"crypto/tls"
+	sysTLS "crypto/tls"
 	"go-proxy/v1/network/util"
 	"go-proxy/v1/socks"
 	"log"
 	"net"
 )
 
-func TLSLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
+func TlsLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", localAddr, err)
@@ -43,7 +43,7 @@ func TLSLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 			}
 
 			// dial tls
-			lrConn, err := tls.Dial("tcp", server, conf)
+			lrConn, err := sysTLS.Dial("tcp", server, conf)
 			if err != nil {
 				log.Printf("failed to connect to server %v: %v", server, err)
 				return
@@ -65,14 +65,14 @@ func TLSLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 	}
 }
 
-func TLSRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
+func TlsRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 	conf, err := GetServerConfig(clientKeyPair, serverKeyPair)
 	if err != nil {
 		log.Printf("get server tls config error: %v", err)
 		return
 	}
 
-	listener, err := tls.Listen("tcp", addr, conf)
+	listener, err := sysTLS.Listen("tcp", addr, conf)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", addr, err)
 		return
@@ -116,15 +116,15 @@ func TLSRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 	}
 }
 
-// TLSSolo combine some feature from Local and Remote, so there will be only one proxy server
-func TLSSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
+// TlsSolo combine some feature from Local and Remote, so there will be only one proxy server
+func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 	conf, err := GetServerConfig(clientKeyPair, serverKeyPair)
 	if err != nil {
 		log.Printf("get server tls config error: %v", err)
 		return
 	}
 
-	listener, err := tls.Listen("tcp", addr, conf)
+	listener, err := sysTLS.Listen("tcp", addr, conf)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", addr, err)
 		return
