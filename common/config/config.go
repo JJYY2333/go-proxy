@@ -19,7 +19,8 @@ type Config struct {
 	UseAuth    bool
 	Mode       string
 	Connection string
-	CertsPath string
+	CertsPath  string
+	Shadow     string
 }
 
 func New() *Config {
@@ -58,7 +59,8 @@ func (cfg *Config) loadApp(cfgFile *ini.File) {
 
 	cfg.UseAuth = sec.Key("Use_Auth").MustBool(false)
 	cfg.Mode = sec.Key("Mode").MustString("test")
-	cfg.CertsPath = sec.Key("TLS_Certs").MustString("")
+	cfg.CertsPath = sec.Key("TLS_Certs_Root").MustString("")
+	cfg.Shadow = sec.Key("Shadow").MustString("")
 }
 
 func (cfg *Config) loadLocal(cfgFile *ini.File) {
