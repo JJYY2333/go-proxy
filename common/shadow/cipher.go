@@ -1,6 +1,7 @@
 package shadow
 
 import (
+	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
@@ -18,8 +19,6 @@ import (
 	该模块实现加密算子cipher，根据传入的参数返回对应的cipher算子
 	默认由外部调用提供keySize和key参数
 */
-
-
 
 // 生成密钥
 func KEYGen(keySize int) ([]byte, string) {
@@ -40,7 +39,6 @@ func KEYGen(keySize int) ([]byte, string) {
 //	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
 //)
 
-
 // -------------AEAD cipher-----------------
 
 /*
@@ -51,7 +49,6 @@ io.ReadFull(rand.Reader, randKey)
 fmt.Println(base64.URLEncoding.EncodeToString(key))
 key, _ := hex.DecodeString(randKey)
 */
-
 
 /*
 KeySizeError的写法:
@@ -66,7 +63,7 @@ func (e KeySizeError) Error() string {
 // List of AEAD ciphers: key size in bytes and constructor
 var aeadList = map[string]struct {
 	KeySize int
-	New     func([]byte) (shadowaead.Cipher, error)
+	New     func([]byte) (Cipher, error)
 }{
 	aeadAes128Gcm:        {16, AESGCM},
 	aeadAes256Gcm:        {32, AESGCM},
@@ -119,10 +116,18 @@ func (a *metaCipher) Decrypter(salt []byte) (cipher.AEAD, error) {
 }
 
 // 扩展接口，用salk对key进行加工
-func processKey(salt, key []byte) []byte{
+func processKey(salt, key []byte) []byte {
 	// 目前不对key做二次加工，salt只是用来摆设
 	salt[0]++
 	return key
+}
+
+func aesGCM(key []byte) (cipher.AEAD, error) {
+	blk, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewGCM(blk)
 }
 
 // AESGCM creates a new Cipher with a pre-shared key. len(psk) must be
@@ -135,14 +140,13 @@ func AESGCM(key []byte) (Cipher, error) {
 	}
 
 	// 生成新的blk，
-	blk, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
+	//blk, err := aes.NewCipher(key)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	return &metaCipher{psk: key, makeAEAD: cipher.NewGCM(blk)}, nil
+	return &metaCipher{psk: key, makeAEAD: aesGCM}, nil
 }
-
 
 // Chacha20Poly1305 creates a new Cipher with a pre-shared key. len(psk)
 // must be 32.
@@ -152,6 +156,3 @@ func Chacha20Poly1305(psk []byte) (Cipher, error) {
 	}
 	return &metaCipher{psk: psk, makeAEAD: chacha20poly1305.New}, nil
 }
-
-
-/
