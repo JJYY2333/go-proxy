@@ -30,8 +30,9 @@ func ReadAddr(conn net.Conn) ([]byte, error) {
 	return buf[:6], nil
 }
 
-// Relay copies between left and right bidirectionally
-func Relay(left, right net.Conn) error {
+// Relay copies between left and right bidirectionally,
+// and Return the number of bytes it transfers.
+func Relay(left, right net.Conn) (int64, error) {
 	var err, err1 error
 	var wg sync.WaitGroup
 	var wait = 5 * time.Second
@@ -40,22 +41,22 @@ func Relay(left, right net.Conn) error {
 		defer wg.Done()
 		var n int64
 		n, err1 = io.Copy(right, left)
-		log.Printf("%v bytes from %v -> %v", n, left.LocalAddr(), right.LocalAddr())
+		log.Printf("=>=>=>: %v bytes from %v to %v", n, left.LocalAddr(), right.LocalAddr())
 		right.SetReadDeadline(time.Now().Add(wait)) // unblock read on right
 	}()
 
 	var n int64
 	n, err = io.Copy(left, right)
-	log.Printf("%v bytes from %v -> %v", n, right.LocalAddr(), left.LocalAddr())
+	log.Printf("<=<=<=: %v bytes from %v to %v", n, right.LocalAddr(), left.LocalAddr())
 	left.SetReadDeadline(time.Now().Add(wait)) // unblock read on left
 	wg.Wait()
 	if err1 != nil && !errors.Is(err1, os.ErrDeadlineExceeded) { // requires Go 1.15+
-		return err1
+		return n, err1
 	}
 	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
-		return err
+		return n, err
 	}
-	return nil
+	return n, nil
 }
 
 func AddrBytesToStr(b []byte) string {

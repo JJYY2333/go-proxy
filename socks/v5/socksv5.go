@@ -1,10 +1,10 @@
 /*
-@Time    : 3/26/22 08:49
+@Time    : 3/17/22 22:06
 @Author  : Neil
-@File    : socksv51.go
+@File    : socksv5
 */
 
-package socks
+package v5
 
 import (
 	"encoding/binary"
@@ -18,31 +18,29 @@ import (
 type Socks struct {
 	useAuth bool
 	checker auth.Authenticator
-	session *Session
 }
 
 func NewSocks(use bool, checker auth.Authenticator) *Socks {
-	s := &Socks{useAuth: use, checker: checker, session: NewSession()}
+	s := &Socks{useAuth: use, checker: checker}
 	return s
 }
 
 // HandShake complete the negotiation and returns the target address.
-func (s *Socks) HandShake(conn net.Conn) (*Session, error) {
+func (s *Socks) HandShake(conn net.Conn) (string, error) {
 	err := s.auth(conn)
 	if err != nil {
-		return nil, fmt.Errorf("socks handshake error: %v", err)
+		return "", fmt.Errorf("socks handshake error: %v", err)
 	}
 
-	_, err = s.connect(conn)
+	addr, err := s.connect(conn)
 	if err != nil {
-		return nil, fmt.Errorf("socks connect error: %v", err)
+		return "", fmt.Errorf("socks connect error: %v", err)
 	}
 
-	return s.session, nil
+	return addr, nil
 }
 
 func (s *Socks) auth(conn net.Conn) error {
-
 	buf := make([]byte, 256)
 	// read VER, nMETHODS
 	n, err := io.ReadFull(conn, buf[:2])
@@ -65,8 +63,6 @@ func (s *Socks) auth(conn net.Conn) error {
 	//reply ok to client
 	//no auth
 	if !s.useAuth {
-		u := NewAnonymousUser()
-		s.session.AddUser(u)
 		n, err = conn.Write([]byte{0x05, 0x00})
 		if n != 2 || err != nil {
 			return fmt.Errorf("write error in Socks5Auth: %v", err)
@@ -96,8 +92,6 @@ func (s *Socks) auth(conn net.Conn) error {
 	}
 
 	if s.checker.Check(uname, passwd) {
-		u := NewAuthUser(uname)
-		s.session.AddUser(u)
 		conn.Write([]byte{0x01, 0x00})
 		return nil
 	} else {
@@ -162,6 +156,5 @@ func (s *Socks) connect(conn net.Conn) (string, error) {
 	if err != nil {
 		return "", errors.New("write rsp: " + err.Error())
 	}
-	s.session.AddTarget(destAddrPort)
 	return destAddrPort, nil
 }

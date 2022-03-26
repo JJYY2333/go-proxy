@@ -4,7 +4,7 @@
 @File    : socksv51.go
 */
 
-package socks
+package v5_1
 
 import (
 	"encoding/binary"
@@ -21,7 +21,8 @@ type Socks struct {
 	session *Session
 }
 
-func NewSocks(use bool, checker auth.Authenticator) *Socks {
+
+func NewSocks(use bool, checker auth.Authenticator) *Socks{
 	s := &Socks{useAuth: use, checker: checker, session: NewSession()}
 	return s
 }

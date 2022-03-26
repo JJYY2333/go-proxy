@@ -8,6 +8,7 @@ package tls
 
 import (
 	sysTLS "crypto/tls"
+	"go-proxy/v1/common/statistics"
 	"go-proxy/v1/network/util"
 	"go-proxy/v1/socks"
 	"log"
@@ -30,7 +31,8 @@ func TlsLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 
 		go func() {
 			defer lConn.Close()
-			tgt, err := socks.HandShake(lConn)
+			session, err := socks.HandShake(lConn)
+			tgt := session.GetTarget()
 			if err != nil {
 				log.Printf("failed to get target address from client: %v", err)
 				return
@@ -58,7 +60,7 @@ func TlsLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 
 			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt)
 
-			if err = util.Relay(lrConn, lConn); err != nil {
+			if _, err = util.Relay(lrConn, lConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
@@ -109,7 +111,7 @@ func TlsRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 
 			log.Printf("proxy %s <-> %s", lrConn.RemoteAddr(), addr)
 
-			if err = util.Relay(lrConn, rtConn); err != nil {
+			if _, err := util.Relay(lrConn, rtConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
@@ -142,11 +144,12 @@ func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyP
 		go func() {
 			defer cConn.Close()
 
-			tgt, err := socks.HandShake(cConn)
+			session, err := socks.HandShake(cConn)
 			if err != nil {
 				log.Printf("failed to get target address from client: %v", err)
 				return
 			}
+			tgt := session.GetTarget()
 
 			tConn, err := net.Dial("tcp", tgt)
 
@@ -157,9 +160,11 @@ func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyP
 
 			log.Printf("proxy %s <-> %s", tConn.RemoteAddr(), addr)
 
-			if err = util.Relay(cConn, tConn); err != nil {
+			var n int64
+			if n, err = util.Relay(cConn, tConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
+			statistics.BytesAccount.Add(session.GetUname(), n)
 		}()
 	}
 }
