@@ -39,5 +39,5 @@ Cipher的实现
 
 ## 结构图
 
-![Structure](Structure.jpg)
+![Structure](structure.png)
 

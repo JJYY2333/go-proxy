@@ -145,6 +145,7 @@ func AESGCM(key []byte) (Cipher, error) {
 	//	return nil, err
 	//}
 
+	// return &metaCipher{psk: key, makeAEAD: cipher.NewGCM}, nil
 	return &metaCipher{psk: key, makeAEAD: aesGCM}, nil
 }
 
