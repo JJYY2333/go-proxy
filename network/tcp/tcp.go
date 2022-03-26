@@ -7,6 +7,7 @@
 package tcp
 
 import (
+	"go-proxy/v1/common/statistics"
 	"go-proxy/v1/network/util"
 	"go-proxy/v1/socks"
 	"log"
@@ -32,7 +33,8 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *s
 
 		go func() {
 			defer lConn.Close()
-			tgt, err := socks.HandShake(lConn)
+			session, err := socks.HandShake(lConn)
+			tgt := session.GetTarget()
 			if err != nil {
 				log.Printf("failed to get target address from client: %v", err)
 				return
@@ -56,7 +58,7 @@ func TcpLocal(localAddr, server string, shadow func(net.Conn) net.Conn, socks *s
 
 			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt)
 
-			if err = util.Relay(lrConn, lConn); err != nil {
+			if _, err = util.Relay(lrConn, lConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
@@ -104,7 +106,7 @@ func TcpRemote(addr string, shadow func(net.Conn) net.Conn) {
 
 			log.Printf("proxy %s <-> %s", lrConn.RemoteAddr(), addr)
 
-			if err = util.Relay(lrConn, rtConn); err != nil {
+			if _, err := util.Relay(lrConn, rtConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
 		}()
@@ -130,11 +132,12 @@ func TcpSolo(addr string, shadow func(net.Conn) net.Conn, socks *socks.Socks) {
 		go func() {
 			defer cConn.Close()
 
-			tgt, err := socks.HandShake(cConn)
+			session, err := socks.HandShake(cConn)
 			if err != nil {
 				log.Printf("failed to get target address from client: %v", err)
 				return
 			}
+			tgt := session.GetTarget()
 
 			tConn, err := net.Dial("tcp", tgt)
 
@@ -145,9 +148,11 @@ func TcpSolo(addr string, shadow func(net.Conn) net.Conn, socks *socks.Socks) {
 
 			log.Printf("proxy %s <-> %s", tConn.RemoteAddr(), addr)
 
-			if err = util.Relay(cConn, tConn); err != nil {
+			var n int64
+			if n, err = util.Relay(cConn, tConn); err != nil {
 				log.Printf("relay error: %v", err)
 			}
+			statistics.BytesAccount.Add(session.GetUname(), n)
 		}()
 	}
 }
