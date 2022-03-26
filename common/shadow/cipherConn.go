@@ -7,6 +7,20 @@ import (
 	"strings"
 )
 
+// 设置全局随机数
+var globalNonce = make([]byte, 16)
+
+// CipherConn
+const (
+	StringKeyOf16 = "6368616e676520746869732070617373"
+	StringKeyOf32 = "6368616e676520746869732070617373776f726420746f206120736563726574"
+
+	// AEAD cipher, 可选加密算法
+	aeadAes128Gcm        = "AEAD_AES_128_GCM"
+	aeadAes256Gcm        = "AEAD_AES_256_GCM"
+	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
+)
+
 type ConnCipher interface {
 	PacketConnCipher
 	StreamConnCipher
@@ -37,20 +51,6 @@ var Key = map[int]struct {
 }
 
 // 用的时候，a.getKey(a.keyString)
-
-// 设置全局随机数
-var globalNonce = make([]byte, 16)
-
-// CipherConn
-const (
-	StringKeyOf16 = "6368616e676520746869732070617373"
-	StringKeyOf32 = "6368616e676520746869732070617373776f726420746f206120736563726574"
-
-	// AEAD cipher, 可选加密算法
-	aeadAes128Gcm        = "AEAD_AES_128_GCM"
-	aeadAes256Gcm        = "AEAD_AES_256_GCM"
-	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
-)
 
 // ErrCipherNotSupported occurs when a cipher is not supported (likely because of security concerns).
 var ErrCipherNotSupported = errors.New("cipher not supported")

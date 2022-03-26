@@ -18,7 +18,7 @@ import (
 	"syscall"
 )
 
-var path = flag.String("path", "conf/app_test.ini", "set the ini file path")
+var path = flag.String("path", "any/conf/app_test.ini", "set the ini file path")
 
 func main() {
 
