@@ -4,12 +4,11 @@
 @File    : user.go
 */
 
-package v5_1
-
+package socks
 
 type Session struct {
 	target string
-	user *User
+	user   *User
 }
 
 func NewSession() *Session {
@@ -38,20 +37,14 @@ type User struct {
 	uname string
 }
 
-func NewAuthUser(uname string) *User{
+func NewAuthUser(uname string) *User {
 	u := new(User)
 	u.uname = uname
 	return u
 }
-
 
 func NewAnonymousUser() *User {
 	u := new(User)
 	u.uname = "Anonymous"
 	return u
 }
-
-
-
-
-

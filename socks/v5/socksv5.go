@@ -4,7 +4,7 @@
 @File    : socksv5
 */
 
-package socks
+package v5
 
 import (
 	"encoding/binary"
@@ -20,7 +20,7 @@ type Socks struct {
 	checker auth.Authenticator
 }
 
-func NewSocks(use bool, checker auth.Authenticator) *Socks{
+func NewSocks(use bool, checker auth.Authenticator) *Socks {
 	s := &Socks{useAuth: use, checker: checker}
 	return s
 }
