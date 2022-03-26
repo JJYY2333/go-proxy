@@ -158,7 +158,7 @@ func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyP
 				return
 			}
 
-			log.Printf("proxy between %s <-> %s", addr, tConn.RemoteAddr())
+			log.Printf("proxying: %s <-----> target: %s", addr, tConn.RemoteAddr())
 
 			var n int64
 			if n, err = util.Relay(cConn, tConn); err != nil {
