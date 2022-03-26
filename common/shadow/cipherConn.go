@@ -1,10 +1,10 @@
 package shadow
 
 import (
-	"net"
-	"errors"
-	"strings"
 	"encoding/hex"
+	"errors"
+	"net"
+	"strings"
 )
 
 type ConnCipher interface {
@@ -21,27 +21,28 @@ type StreamConnCipher interface {
 }
 
 //-------------key
-func GetKeyByDecode(stringKey string) []byte{
-	key, _:= hex.DecodeString(stringKey)
+func GetKeyByDecode(stringKey string) []byte {
+	key, _ := hex.DecodeString(stringKey)
 	return key
 }
 
 // hardcode的key
-var Key = map[int]struct{
-	keySize int
+var Key = map[int]struct {
+	keySize   int
 	keyString string
-	getKey func(string) []byte
+	getKey    func(string) []byte
 }{
 	16: {16, StringKeyOf16, GetKeyByDecode},
 	32: {32, StringKeyOf32, GetKeyByDecode},
 }
+
 // 用的时候，a.getKey(a.keyString)
 
 // 设置全局随机数
-var globalNonce = make([] byte, 16)
+var globalNonce = make([]byte, 16)
 
 // CipherConn
-const(
+const (
 	StringKeyOf16 = "6368616e676520746869732070617373"
 	StringKeyOf32 = "6368616e676520746869732070617373776f726420746f206120736563726574"
 
@@ -49,7 +50,6 @@ const(
 	aeadAes128Gcm        = "AEAD_AES_128_GCM"
 	aeadAes256Gcm        = "AEAD_AES_256_GCM"
 	aeadChacha20Poly1305 = "AEAD_CHACHA20_POLY1305"
-
 )
 
 // ErrCipherNotSupported occurs when a cipher is not supported (likely because of security concerns).
@@ -96,10 +96,8 @@ func (dummy) PacketConn(c net.PacketConn) net.PacketConn { return c }
 // ------
 type aeadCipher struct{ Cipher }
 
-/*
 // 返回加密链接
 func (aead *aeadCipher) StreamConn(c net.Conn) net.Conn { return NewStreamConn(c, aead) }
 func (aead *aeadCipher) PacketConn(c net.PacketConn) net.PacketConn {
 	return NewPacketConn(c, aead)
 }
- */

@@ -30,7 +30,6 @@ func Dial(network, address string, ciph StreamConnCipher) (net.Conn, error) {
 
 // ---------具体的加密环节
 
-
 // payloadSizeMask is the maximum size of payload in bytes.
 const payloadSizeMask = 0x3FFF // 16*1024 - 1
 
@@ -73,11 +72,11 @@ func (w *writer) ReadFrom(r io.Reader) (n int64, err error) {
 			buf = buf[:2+w.Overhead()+nr+w.Overhead()]
 			payloadBuf = payloadBuf[:nr]
 			buf[0], buf[1] = byte(nr>>8), byte(nr) // big-endian payload size
-			w.Seal(buf[:0], w.nonce, buf[:2], nil)
-			increment(w.nonce)
+			//w.Seal(buf[:0], w.nonce, buf[:2], nil)
+			//increment(w.nonce)
 
 			w.Seal(payloadBuf[:0], w.nonce, payloadBuf, nil)
-			increment(w.nonce)
+			//increment(w.nonce)
 
 			_, ew := w.Writer.Write(buf)
 			if ew != nil {
@@ -127,7 +126,7 @@ func (r *reader) read() (int, error) {
 	}
 
 	_, err = r.Open(buf[:0], r.nonce, buf, nil)
-	increment(r.nonce)
+	//increment(r.nonce)
 	if err != nil {
 		return 0, err
 	}
@@ -142,7 +141,7 @@ func (r *reader) read() (int, error) {
 	}
 
 	_, err = r.Open(buf[:0], r.nonce, buf, nil)
-	increment(r.nonce)
+	//increment(r.nonce)
 	if err != nil {
 		return 0, err
 	}
@@ -295,4 +294,4 @@ func (c *streamConn) ReadFrom(r io.Reader) (int64, error) {
 }
 
 // NewConn wraps a stream-oriented net.Conn with cipher.
-func NewConn(c net.Conn, ciph Cipher) net.Conn { return &streamConn{Conn: c, Cipher: ciph} }
+func NewStreamConn(c net.Conn, ciph Cipher) net.Conn { return &streamConn{Conn: c, Cipher: ciph} }
