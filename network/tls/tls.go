@@ -146,7 +146,7 @@ func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyP
 
 			session, err := socks.HandShake(cConn)
 			if err != nil {
-				log.Printf("failed to get target address from client: %v", err)
+				log.Printf("failed to handshake with client %v: %v", cConn.RemoteAddr(), err)
 				return
 			}
 			tgt := session.GetTarget()
@@ -158,7 +158,7 @@ func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyP
 				return
 			}
 
-			log.Printf("proxy %s <-> %s", tConn.RemoteAddr(), addr)
+			log.Printf("proxy between %s <-> %s", addr, tConn.RemoteAddr())
 
 			var n int64
 			if n, err = util.Relay(cConn, tConn); err != nil {

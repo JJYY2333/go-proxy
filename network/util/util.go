@@ -41,13 +41,13 @@ func Relay(left, right net.Conn) (int64, error) {
 		defer wg.Done()
 		var n int64
 		n, err1 = io.Copy(right, left)
-		log.Printf("=>=>=>: %v bytes from %v to %v", n, left.LocalAddr(), right.LocalAddr())
+		log.Printf("=>=>=>: %v bytes flow %v ~~~> %v ~~~> %v", n, left.RemoteAddr(), right.LocalAddr(), right.RemoteAddr())
 		right.SetReadDeadline(time.Now().Add(wait)) // unblock read on right
 	}()
 
 	var n int64
 	n, err = io.Copy(left, right)
-	log.Printf("<=<=<=: %v bytes from %v to %v", n, right.LocalAddr(), left.LocalAddr())
+	log.Printf("<=<=<=: %v bytes flow %v <~~~ %v <~~~ %v", n, left.RemoteAddr(), left.LocalAddr(), right.RemoteAddr())
 	left.SetReadDeadline(time.Now().Add(wait)) // unblock read on left
 	wg.Wait()
 	if err1 != nil && !errors.Is(err1, os.ErrDeadlineExceeded) { // requires Go 1.15+
