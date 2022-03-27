@@ -6,8 +6,10 @@
 
 package socks
 
+import "go-proxy/v1/network/util"
+
 type Session struct {
-	target string
+	target util.Addr
 	user   *User
 }
 
@@ -21,7 +23,7 @@ func (s *Session) AddUser(u *User) {
 	s.user = u
 }
 
-func (s *Session) AddTarget(tgt string) {
+func (s *Session) AddTarget(tgt util.Addr) {
 	s.target = tgt
 }
 
@@ -29,7 +31,7 @@ func (s *Session) GetUname() string {
 	return s.user.uname
 }
 
-func (s *Session) GetTarget() string {
+func (s *Session) GetTarget() util.Addr {
 	return s.target
 }
 

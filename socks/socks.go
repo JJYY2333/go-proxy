@@ -5,3 +5,9 @@
 */
 
 package socks
+
+import "net"
+
+type Socks interface {
+	HandShake(conn net.Conn) (*Session, error)
+}
