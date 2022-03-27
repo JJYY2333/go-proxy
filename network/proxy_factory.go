@@ -13,9 +13,10 @@ import (
 	"go-proxy/v1/network/tcp"
 	"go-proxy/v1/network/tls"
 	"go-proxy/v1/socks"
+	"log"
 )
 
-func MakeProxy(cfg *config.Config, socks *socks.Socks) (proxy.Proxy, error) {
+func MakeProxy(cfg *config.Config, socks socks.Socks) (proxy.Proxy, error) {
 	var p proxy.Proxy
 	var err error
 
@@ -31,6 +32,6 @@ func MakeProxy(cfg *config.Config, socks *socks.Socks) (proxy.Proxy, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	log.Printf("make proxy success, proxy type: %v", cfg.Connection)
 	return p, nil
 }

@@ -21,6 +21,7 @@ type Config struct {
 	Connection string
 	CertsPath  string
 	Shadow     string
+	Socks      string
 }
 
 func New() *Config {
@@ -61,6 +62,7 @@ func (cfg *Config) loadApp(cfgFile *ini.File) {
 	cfg.Mode = sec.Key("Mode").MustString("test")
 	cfg.CertsPath = sec.Key("TLS_Certs_Root").MustString("")
 	cfg.Shadow = sec.Key("Shadow").MustString("")
+	cfg.Socks = sec.Key("Socks").MustString("socksv5")
 }
 
 func (cfg *Config) loadLocal(cfgFile *ini.File) {
