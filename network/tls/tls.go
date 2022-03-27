@@ -15,7 +15,7 @@ import (
 	"net"
 )
 
-func TlsLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
+func TlsLocal(localAddr, server string, socks socks.Socks, pair *KeyPair) {
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
 		log.Printf("failed to listen on %s: %v", localAddr, err)
@@ -52,13 +52,12 @@ func TlsLocal(localAddr, server string, socks *socks.Socks, pair *KeyPair) {
 			}
 			defer lrConn.Close()
 
-			addrByte := util.AddrStrToBytes(tgt)
-			if _, err = lrConn.Write(addrByte); err != nil {
+			if _, err = lrConn.Write(tgt); err != nil {
 				log.Printf("failed to send target address: %v", err)
 				return
 			}
 
-			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt)
+			log.Printf("proxy %s <-> %s <-> %s", lConn.RemoteAddr(), server, tgt.String())
 
 			if _, err = util.Relay(lrConn, lConn); err != nil {
 				log.Printf("relay error: %v", err)
@@ -98,11 +97,9 @@ func TlsRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 				log.Printf("failed to get target address from %v: %v", lrConn.RemoteAddr(), err)
 				return
 			}
-
-			addr := util.AddrBytesToStr(tgt)
 			//log.Printf("remote tgt is: %v, length is :%v, string is :%v", addr, len(addr), string(addr))
 
-			rtConn, err := net.Dial("tcp", addr)
+			rtConn, err := net.Dial("tcp", tgt.String())
 
 			if err != nil {
 				log.Printf("failed to connect to target %s: %v", addr, err)
@@ -119,7 +116,7 @@ func TlsRemote(addr string, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 }
 
 // TlsSolo combine some feature from Local and Remote, so there will be only one proxy server
-func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
+func TlsSolo(addr string, socks socks.Socks, clientKeyPair *KeyPair, serverKeyPair *KeyPair) {
 	conf, err := GetServerConfig(clientKeyPair, serverKeyPair)
 	if err != nil {
 		log.Printf("get server tls config error: %v", err)
@@ -151,7 +148,7 @@ func TlsSolo(addr string, socks *socks.Socks, clientKeyPair *KeyPair, serverKeyP
 			}
 			tgt := session.GetTarget()
 
-			tConn, err := net.Dial("tcp", tgt)
+			tConn, err := net.Dial("tcp", tgt.String())
 
 			if err != nil {
 				log.Printf("failed to connect to target %s: %v", addr, err)

@@ -25,13 +25,13 @@ type TlsProxy struct {
 	listenAddr string
 
 	//socks
-	socks *socks.Socks
+	socks socks.Socks
 
 	//mode
 	mode string
 }
 
-func NewProxy(cfg *config.Config, socks *socks.Socks) (*TlsProxy, error) {
+func NewProxy(cfg *config.Config, socks socks.Socks) (*TlsProxy, error) {
 	p := new(TlsProxy)
 	p.clientKeyPair = &KeyPair{key: path.Join(cfg.CertsPath, "client.key"), pem: path.Join(cfg.CertsPath, "client.pem")}
 	p.serverKeyPair = &KeyPair{key: path.Join(cfg.CertsPath, "server.key"), pem: path.Join(cfg.CertsPath, "server.pem")}

@@ -9,7 +9,7 @@ package tcp
 import (
 	"fmt"
 	"go-proxy/v1/common/config"
-	shadow "go-proxy/v1/common/tmpShadow"
+	"go-proxy/v1/common/shadow"
 	"go-proxy/v1/socks"
 	"net"
 )
@@ -25,13 +25,13 @@ type TcpProxy struct {
 	listenAddr string
 
 	//socks
-	socks *socks.Socks
+	socks socks.Socks
 
 	//mode
 	mode string
 }
 
-func NewProxy(cfg *config.Config, socks *socks.Socks) (*TcpProxy, error) {
+func NewProxy(cfg *config.Config, socks socks.Socks) (*TcpProxy, error) {
 	p := new(TcpProxy)
 	p.socks = socks
 	p.mode = cfg.Mode
