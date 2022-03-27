@@ -2,6 +2,7 @@ package shadow
 
 import (
 	"fmt"
+	"log"
 	"net"
 )
 
@@ -30,6 +31,15 @@ case "AES-256-GCM":
 	length = 32
 }
 */
+
+func RegisterShadow(name string, f func(net.Conn) net.Conn) {
+	if _, ok := shadowFuncMap[name]; ok {
+		log.Printf("shadow func: %v already registered, drop this register", name)
+		return
+	}
+
+	shadowFuncMap[name] = f
+}
 
 func GetShadow(name string) (func(net.Conn) net.Conn, error) {
 	//f, ok := shadowFuncMap[name]

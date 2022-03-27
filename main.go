@@ -8,7 +8,6 @@ package main
 
 import (
 	"flag"
-	"go-proxy/v1/common/auth"
 	"go-proxy/v1/common/config"
 	"go-proxy/v1/network"
 	"go-proxy/v1/socks"
@@ -27,11 +26,17 @@ func main() {
 	cfg := config.New()
 	cfg.LoadConfigFromFile(*path)
 
-	socks := socks.NewSocks(cfg.UseAuth, auth.NewDummyAuth())
+	//socks := socks.NewSocks(cfg.UseAuth, auth.NewDummyAuth())
+	socks, err := socks.MakeSocks(cfg)
+	if err != nil {
+		log.Fatalf("make socks error in main: %v", err)
+	}
+
 	proxy, err := network.MakeProxy(cfg, socks)
 	if err != nil {
-		log.Fatalf("make proxy error: %v", err)
+		log.Fatalf("make proxy error in main: %v", err)
 	}
+
 	proxy.Start()
 
 	sigCh := make(chan os.Signal, 1)
