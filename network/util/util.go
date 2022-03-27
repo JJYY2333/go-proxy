@@ -9,7 +9,6 @@ package util
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -19,16 +18,16 @@ import (
 	"time"
 )
 
-func ReadAddr(conn net.Conn) ([]byte, error) {
-	buf := make([]byte, 10)
-
-	n, err := io.ReadFull(conn, buf[:6])
-	if n != 6 || err != nil {
-		return nil, fmt.Errorf("read addr error in ReadAddr: %v", err)
-	}
-
-	return buf[:6], nil
-}
+//func ReadAddr(conn net.Conn) ([]byte, error) {
+//	buf := make([]byte, 10)
+//
+//	n, err := io.ReadFull(conn, buf[:6])
+//	if n != 6 || err != nil {
+//		return nil, fmt.Errorf("read addr error in ReadAddr: %v", err)
+//	}
+//
+//	return buf[:6], nil
+//}
 
 // Relay copies between left and right bidirectionally,
 // and Return the number of bytes it transfers.
