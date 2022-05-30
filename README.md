@@ -16,7 +16,9 @@ support two transport layer protocl:
 when using tcp, you should define an encrypted algorithm to bypass the GFW. When using tls, you can depends on tls's encrypted algorithm.
 
 
-## 结构图
+## architecture
 
 ![Structure](structure.png)
 
+## logo
+![gopher](https://user-images.githubusercontent.com/23739663/170906347-beec2c27-8d5e-4770-8187-88320284069e.jpg)
